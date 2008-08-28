@@ -1,6 +1,28 @@
 <?php
-// TODO: Fix all ../wp-includes/wp-content/ URLs so they aren't hard-coded.
-//
+if ( !defined('WP_CONTENT_URL') ) {
+	define('WP_CONTENT_URL', get_option('siteurl') . '/wp-content');
+}
+
+function dsq_plugin_basename($file) {
+	$file = dirname($file);
+
+	// From WP2.6 wp-includes/plugin.php:plugin_basename()
+	$file = str_replace('\\','/',$file); // sanitize for Win32 installs
+	$file = preg_replace('|/+|','/', $file); // remove any duplicate slash
+	$plugin_dir = str_replace('\\','/',WP_PLUGIN_DIR); // sanitize for Win32 installs
+	$plugin_dir = preg_replace('|/+|','/', $plugin_dir); // remove any duplicate slash
+	$file = preg_replace('|^' . preg_quote($plugin_dir, '|') . '/|','',$file); // get relative path from plugins dir
+
+	if ( strstr($file, '/') === false ) {
+		return $file;
+	}
+
+	$pieces = explode('/', $file);
+	return !empty($pieces[count($pieces)-1]) ? $pieces[count($pieces)-1] : $pieces[count($pieces)-2];
+}
+
+define('DSQ_PLUGIN_URL', WP_CONTENT_URL . '/plugins/' . dsq_plugin_basename(__FILE__));
+
 global $wp_version;
 global $dsq_version;
 global $dsq_api;
@@ -16,7 +38,7 @@ if ( !function_exists('wp_nonce_field') ) {
 
 // Handle export function.
 if( isset($_POST['export']) ) {
-	require_once(ABSPATH . 'wp-content/plugins/disqus/export.php');
+	require_once(dirname(__FILE__) . '/export.php');
 	dsq_export_wp();
 }
 
@@ -82,16 +104,16 @@ if ( 2 == $step && isset($_POST['dsq_username']) && isset($_POST['dsq_password']
 
 // HACK: Our own styles for older versions of WordPress.
 if ( $wp_version < 2.5 ) {
-	echo "<link rel='stylesheet' href='../wp-content/plugins/disqus/styles/manage-pre25.css' type='text/css' />";
+	echo "<link rel='stylesheet' href='" . DSQ_PLUGIN_URL . "/styles/manage-pre25.css' type='text/css' />";
 }
 
 ?>
 <!-- Header -->
-<link rel='stylesheet' href='../wp-content/plugins/disqus/styles/manage.css' type='text/css' />
-<script type="text/javascript" src='../wp-content/plugins/disqus/scripts/manage.js'></script>
+<link rel='stylesheet' href='<?php echo DSQ_PLUGIN_URL; ?>/styles/manage.css' type='text/css' />
+<script type="text/javascript" src='<?php echo DSQ_PLUGIN_URL; ?>/scripts/manage.js'></script>
 
 <div class="wrap" id="dsq-wrap">
-	<img src="../wp-content/plugins/disqus/images/logo.png">
+	<img src="<?php echo DSQ_PLUGIN_URL; ?>/images/logo.png">
 
 	<ul id="dsq-tabs">
 		<li class="selected" id="dsq-tab-main"><?php echo (dsq_is_installed() ? 'Manage' : 'Install'); ?></li>
