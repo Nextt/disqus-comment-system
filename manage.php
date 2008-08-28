@@ -2,16 +2,18 @@
 if ( !defined('WP_CONTENT_URL') ) {
 	define('WP_CONTENT_URL', get_option('siteurl') . '/wp-content');
 }
+if ( !defined('PLUGINDIR') ) {
+	define( 'PLUGINDIR', 'wp-content/plugins' ); // Relative to ABSPATH.  For back compat.
+}
+
 
 function dsq_plugin_basename($file) {
 	$file = dirname($file);
 
-	// From WP2.6 wp-includes/plugin.php:plugin_basename()
+	// From WP2.5 wp-includes/plugin.php:plugin_basename()
 	$file = str_replace('\\','/',$file); // sanitize for Win32 installs
 	$file = preg_replace('|/+|','/', $file); // remove any duplicate slash
-	$plugin_dir = str_replace('\\','/',WP_PLUGIN_DIR); // sanitize for Win32 installs
-	$plugin_dir = preg_replace('|/+|','/', $plugin_dir); // remove any duplicate slash
-	$file = preg_replace('|^' . preg_quote($plugin_dir, '|') . '/|','',$file); // get relative path from plugins dir
+	$file = preg_replace('|^.*/' . PLUGINDIR . '/|','',$file); // get relative path from plugins dir
 
 	if ( strstr($file, '/') === false ) {
 		return $file;
