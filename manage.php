@@ -60,7 +60,7 @@ if ( isset($_POST['dsq_forum_url']) && isset($_POST['dsq_username']) && isset($_
 	$api_key = $dsq_api->get_forum_api_key($_POST['dsq_username'], $_POST['dsq_password'], $_POST['dsq_forum_url']);
 	update_option('disqus_forum_url', $_POST['dsq_forum_url']);
 
-	if ( $api_key < 0 ) {
+	if ( is_numeric($api_key) && $api_key < 0 ) {
 		update_option('disqus_replace', 'replace');
 		dsq_manage_dialog('There was an error completing the installation of DISQUS.  If you are still having issues, please contact <a href="mailto:help@disqus.com">help@disqus.com</a>.', true);
 	} else {
@@ -255,7 +255,7 @@ if(function_exists('curl_init')) {
 					<select name="disqus_replace" tabindex="3" class="disqus-replace">
 						<?php if ( dsq_legacy_mode() ) : ?>
 							<option value="empty" <?php if('empty'==$dsq_replace){echo 'selected';}?>>Only future blog posts and existing posts without WordPress comments.</option>
-						<? endif ; ?>
+						<?php endif ; ?>
 						<option value="all" <?php if('all'==$dsq_replace){echo 'selected';}?>>On all existing and future blog posts.</option>
 						<option value="closed" <?php if('closed'==$dsq_replace){echo 'selected';}?>>Only on blog posts with closed comments.</option>
 					</select>

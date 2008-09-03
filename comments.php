@@ -214,7 +214,7 @@
 			<h3>Trackbacks</h3>
 			<ul id="dsq-references">
 			</ul>
-		<? endif ; ?>
+		<?php endif ; ?>
 	</div>
 </div>
 
