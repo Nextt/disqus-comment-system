@@ -70,7 +70,7 @@
 					<li style="margin-left:<?php echo $comment['depth'] * 30; ?>px" class="disqus_commentset"><em>Comment removed.</em></li>
 				<?php else : ?>
 					<div id="comment-<?php echo $comment['id']; ?>"></div>
-					<li id="dsq-comment-<?php echo $comment['id']; ?>" style="margin-left:<?php echo $comment['depth'] * 30; ?>px" class="dsq-comment <?php if($comment['user']['is_creator']) echo 'special'; ?>">
+					<li id="dsq-comment-<?php echo $comment['id']; ?>" style="margin-left:<?php echo $comment['depth'] * 30; ?>px" class="dsq-comment<?php if($comment['user']['is_creator']) { echo ' special'; } ?><?php if($comment['user']['is_moderator']) { echo ' dsq-moderator'; } ?>">
 						<ul class="dsq-comment-rate" id="dsq-rate-loading-<?php echo $comment['id']; ?>" style="display: none"><img src="<?php echo DISQUS_MEDIA_URL; ?>/images/loading-small.gif" /></ul>
 						<ul class="dsq-comment-rate" id="dsq-rate-<?php echo $comment['id']; ?>">
 							<li id="dsq-rate-up-<?php echo $comment['id']; ?>"><a id="dsq-rate-up-a-<?php echo $comment['id']; ?>" class="dsq-arrows" href="#" title="Rate Up"><img src="<?php echo DISQUS_MEDIA_URL; ?>/images/embed/arrow2-up.png" alt="^" /></a></li>
@@ -196,7 +196,15 @@
 				<?php endif ; ?>
 			<?php endforeach; ?>
 		</ul>
-		<div id="dsq-pagination"></div>
+		<div id="dsq-pagination">
+<?php
+			if ( $dsq_response['paginate'] && $dsq_response['pages'] > 1 ) {
+				echo '<a href="#" onclick="Dsq.Thread.appendPage(2); return false">Show more comments...</a>';
+			} else {
+				echo '&nbsp;';
+			}
+?>
+		</div>
 		<div id="dsq-post-bottom" style="display: none">
 			<?php if ( !$dsq_response['thread_locked'] ) : ?>
 				<div id="dsq-auth">
@@ -212,7 +220,18 @@
 		</div>
 		<?php if ($dsq_response['linkbacks_enabled'] ) : ?>
 			<h3>Trackbacks</h3>
+			<p>(<a href="<?php trackback_url(); ?>" rel="trackback">Trackback URL</a>)</p>
 			<ul id="dsq-references">
+				<?php foreach ($comments as $comment) : ?>
+					<?php $comment_type = get_comment_type(); ?>
+						<?php if($comment_type != 'comment') { ?>
+							<li>
+								<cite><?php comment_author_link(); ?></cite>
+								<p class="dsq-meta"><?php comment_date(); ?> at <?php comment_time(); ?></p>
+								<p class="dsq-content"><?php comment_excerpt(); ?></p>
+							</li>
+						<?php } ?>
+				<?php endforeach; ?>
 			</ul>
 		<?php endif ; ?>
 	</div>
