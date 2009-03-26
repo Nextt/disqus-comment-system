@@ -1,29 +1,4 @@
 <?php
-if ( !defined('WP_CONTENT_URL') ) {
-	define('WP_CONTENT_URL', get_option('siteurl') . '/wp-content');
-}
-if ( !defined('PLUGINDIR') ) {
-	define( 'PLUGINDIR', 'wp-content/plugins' ); // Relative to ABSPATH.  For back compat.
-}
-
-function dsq_plugin_basename($file) {
-	$file = dirname($file);
-
-	// From WP2.5 wp-includes/plugin.php:plugin_basename()
-	$file = str_replace('\\','/',$file); // sanitize for Win32 installs
-	$file = preg_replace('|/+|','/', $file); // remove any duplicate slash
-	$file = preg_replace('|^.*/' . PLUGINDIR . '/|','',$file); // get relative path from plugins dir
-
-	if ( strstr($file, '/') === false ) {
-		return $file;
-	}
-
-	$pieces = explode('/', $file);
-	return !empty($pieces[count($pieces)-1]) ? $pieces[count($pieces)-1] : $pieces[count($pieces)-2];
-}
-
-define('DSQ_PLUGIN_URL', WP_CONTENT_URL . '/plugins/' . dsq_plugin_basename(__FILE__));
-
 global $wp_version;
 global $dsq_version;
 global $dsq_api;
