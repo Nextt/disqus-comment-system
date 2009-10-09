@@ -49,7 +49,8 @@
 				'author_name':	'<?php echo htmlspecialchars(get_comment_author(), ENT_QUOTES); ?>',
 				'author_url':	'<?php echo htmlspecialchars(get_comment_author_url(), ENT_QUOTES); ?>',
 				'date':			'<?php comment_date('m/d/Y h:i A'); ?>',
-				'excerpt':		'<?php echo htmlspecialchars(get_comment_excerpt(), ENT_QUOTES); ?>'
+				'excerpt':		'<?php echo str_replace(array("\r\n", "\n", "\r"), '<br />', htmlspecialchars(get_comment_excerpt(), ENT_QUOTES)); ?>',
+				'type':			'<?php echo $comment_type; ?>'
 			}
 <?php
 			$count++;
@@ -61,4 +62,4 @@
 	};
 </script>
 
-<script type="text/javascript" charset="utf-8" src="<?php echo DISQUS_API_URL; ?>/scripts/<?php echo strtolower(get_option('disqus_forum_url')); ?>/disqus.js?v=2.0&slug=<?php echo $dsq_response['thread_slug']; ?>&pname=wordpress&pver=<?php echo $dsq_version; ?>"></script>
+<script type="text/javascript" charset="utf-8" src="http://<?php echo strtolower(get_option('disqus_forum_url')); ?>.<?php echo DISQUS_DOMAIN; ?>/disqus.js?v=2.0&slug=<?php echo $dsq_response['thread_slug']; ?>&pname=wordpress&pver=<?php echo $dsq_version; ?>"></script>

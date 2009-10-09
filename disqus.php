@@ -4,7 +4,7 @@ Plugin Name: DISQUS Comment System
 Plugin URI: http://disqus.com/
 Description: The DISQUS comment system replaces your WordPress comment system with your comments hosted and powered by DISQUS. Head over to the Comments admin page to set up your DISQUS Comment System.
 Author: DISQUS.com <team@disqus.com>
-Version: 2.11.4349
+Version: 2.12.7112
 Author URI: http://disqus.com/
 
 */
@@ -49,7 +49,8 @@ define('DSQ_PLUGIN_URL', WP_CONTENT_URL . '/plugins/' . dsq_plugin_basename(__FI
  * @global	string	$dsq_version
  * @since	1.0
  */
-$dsq_version = '2.11';
+$dsq_version = '2.12';
+$mt_dsq_version = '2.01';
 /**
  * Response from DISQUS get_thread API call for comments template.
  *
@@ -78,7 +79,13 @@ $dsq_cc_script_embedded = false;
  * @since	1.0
  */
 $dsq_api = new DisqusAPI(get_option('disqus_forum_url'), get_option('disqus_api_key'));
-
+/**
+ * Copy of global wp_query.
+ *
+ * @global	WP_Query	$dsq_wp_query
+ * @since	1.0
+ */
+$dsq_wp_query = NULL;
 
 /**
  * Helper functions.
@@ -265,11 +272,15 @@ function dsq_comments_template($value) {
 }
 
 function dsq_comment_count() {
-	global $dsq_cc_script_embedded;
+	global $dsq_cc_script_embedded, $dsq_wp_query, $wp_query;
 
 	if ( $dsq_cc_script_embedded ) {
 		return;
 	} else if ( (is_single() || is_page() || $withcomments || is_feed()) ) {
+		return;
+	} else if ( $dsq_wp_query->is_feed ) {
+		// Protect ourselves from other plugins which begin their own loop
+		// and clobber $wp_query.
 		return;
 	}
 
@@ -286,7 +297,8 @@ function dsq_comment_count() {
 					query += 'wpid' + i + '=' + encodeURIComponent(links[i].getAttribute('wpid')) + '&';
 				}
 			}
-			document.write('<script charset="utf-8" type="text/javascript" src="<?php echo DISQUS_URL ?>/forums/<?php echo strtolower(get_option('disqus_forum_url')); ?>/get_num_replies_from_wpid.js?v=2.0' + query + '"><' + '/script>');
+			document.write('<script charset="utf-8" type="text/javascript" src="http://<?php echo strtolower(get_option('disqus_forum_url')); ?>.<?php echo DISQUS_DOMAIN; ?>/get_num_replies_from_wpid.js?v=2.0' + query + '"><' + '/script>');
+
 		})();
 	//]]>
 	</script>
@@ -322,7 +334,11 @@ function dsq_bloginfo_url($url) {
 
 // For WordPress 2.0.x
 function dsq_loop_start() {
-	global $comment_count_cache;
+	global $comment_count_cache, $dsq_wp_query, $wp_query;
+
+	if ( !isset($dsq_wp_query) || is_null($dsq_wp_query) ) {
+		$dsq_wp_query = $wp_query;
+	}
 
 	if ( isset($comment_count_cache) ) {
 		foreach ( $comment_count_cache as $key => $value ) {
@@ -362,11 +378,11 @@ function dsq_warning() {
 	global $wp_version;
 
 	if ( !get_option('disqus_forum_url') && !isset($_POST['forum_url']) && $_GET['page'] != 'disqus' ) {
-		dsq_manage_dialog('You must <a href="edit-comments.php?page=disqus">configure the plugin</a> to enable the DISQUS comment system.', true);
+		dsq_manage_dialog('You must <a href="edit-comments.php?page=disqus">configure the plugin</a> to enable Disqus Comments.', true);
 	}
 
 	if ( dsq_legacy_mode() && $_GET['page'] == 'disqus' ) {
-		dsq_manage_dialog('DISQUS is running in legacy mode.  (<a href="edit-comments.php?page=disqus">Click here to configure</a>)');
+		dsq_manage_dialog('Disqus Comments has not yet been configured. (<a href="edit-comments.php?page=disqus">Click here to configure</a>)');
 	}
 }
 
@@ -375,7 +391,7 @@ function dsq_check_version() {
 
 	$latest_version = $dsq_api->wp_check_version();
 	if ( $latest_version ) {
-		dsq_manage_dialog('You are running an old version of the DISQUS plugin.  Please <a href="http://blog.disqus.net">check the blog</a> for updates.');
+		dsq_manage_dialog('You are running an old version of the Disqus Comments plugin. Please <a href="http://disqus.com/comments/wordpress">check the website</a> for updates.');
 	}
 }
 
