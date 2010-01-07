@@ -2,7 +2,7 @@
 Contributors: DISQUS.com <team@disqus.com>
 Tags: comments, threaded, email, notification, spam, avatars, community, profile, widget
 Requires at least: 2.0
-Tested up to: 2.8
+Tested up to: 2.9
 Stable tag: 2.12.7121
 
 The DISQUS comment system replaces your WordPress comment system with your comments hosted and powered by DISQUS.
@@ -50,7 +50,7 @@ The Disqus for WordPress plugin seamlessly integrates using the Disqus API and b
 
 = More documentation =
 
-Go to http://disqus.com/docs/wordpress
+Go to http://disqus.com/comments/wordpress/
 
 == Upgrading ==
 
