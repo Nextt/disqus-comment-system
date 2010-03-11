@@ -256,7 +256,7 @@ if (count($posts)) {
 <wp:menu_order><?php echo $post->menu_order; ?></wp:menu_order>
 <wp:post_type><?php echo $post->post_type; ?></wp:post_type>
 <?php
-$comments = $wpdb->get_results( $wpdb->prepare("SELECT * FROM $wpdb->comments WHERE comment_post_ID = %d AND comment_agent NOT LIKE 'Disqus/%'", $post->ID) );
+$comments = $wpdb->get_results( $wpdb->prepare("SELECT * FROM $wpdb->comments WHERE comment_post_ID = %d AND comment_agent NOT LIKE 'Disqus/%%'", $post->ID) );
 if ( $comments ) { foreach ( $comments as $c ) { ?>
 <wp:comment>
 <wp:comment_id><?php echo $c->comment_ID; ?></wp:comment_id>
