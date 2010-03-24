@@ -4,7 +4,7 @@ Plugin Name: Disqus Comment System
 Plugin URI: http://disqus.com/
 Description: The Disqus comment system replaces your WordPress comment system with your comments hosted and powered by Disqus. Head over to the Comments admin page to set up your DISQUS Comment System.
 Author: Disqus <team@disqus.com>
-Version: 2.32.8616
+Version: 2.33.8752
 Author URI: http://disqus.com/
 */
 
@@ -48,7 +48,7 @@ define('DSQ_PLUGIN_URL', WP_CONTENT_URL . '/plugins/' . dsq_plugin_basename(__FI
  * @global	string	$dsq_version
  * @since	1.0
  */
-$dsq_version = '2.32';
+$dsq_version = '2.33';
 $mt_dsq_version = '2.01';
 /**
  * Response from Disqus get_thread API call for comments template.
@@ -677,15 +677,6 @@ function dsq_warning() {
 	}
 }
 
-function dsq_check_version() {
-	global $dsq_api;
-
-	$latest_version = $dsq_api->wp_check_version();
-	if ( $latest_version ) {
-		dsq_manage_dialog('You are running an old version of the Disqus Comments plugin. Please <a href="http://disqus.com/help/wordpress" onclick="window.open(this.href); return false">check the website</a> for updates.');
-	}
-}
-
 // catch original query
 function dsq_parse_query($query) {
 	add_action('the_posts', 'dsq_add_request_post_ids', 999);
@@ -829,7 +820,6 @@ function dsq_check_permalink($post_id) {
 add_action('edit_post', 'dsq_check_permalink');
 
 add_action('admin_notices', 'dsq_warning');
-add_action('admin_notices', 'dsq_check_version');
 
 // Only replace comments if the disqus_forum_url option is set.
 add_filter('comments_template', 'dsq_comments_template');

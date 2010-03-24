@@ -144,18 +144,6 @@ class DisqusAPI {
 		return $data;
 	}
 
-	function wp_check_version() {
-		global $dsq_version;
-
-		$response = @dsq_urlopen(DISQUS_MEDIA_URL . '/wp/LATEST_VERSION');
-		$latest_version = floatval($response['data']);
-		if($dsq_version < $latest_version) {
-			return $latest_version;
-		}
-
-		return false;
-	}
-
 }
 
 ?>

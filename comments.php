@@ -6,8 +6,6 @@
 	<div id="dsq-content">
 		<ul id="dsq-comments">
 <?php foreach ( $dsq_response['posts'] as $comment ) : ?>
-			<div id="comment-<?php echo $comment['id']; ?>"></div>
-
 			<li id="dsq-comment-<?php echo $comment['id']; ?>">
 				<div id="dsq-comment-header-<?php echo $comment['id']; ?>" class="dsq-comment-header">
 					<cite id="dsq-cite-<?php echo $comment['id']; ?>">
