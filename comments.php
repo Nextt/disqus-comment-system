@@ -42,6 +42,7 @@
 	var disqus_container_id = 'disqus_thread';
 	var disqus_domain = '<?php echo DISQUS_DOMAIN; ?>';
 	var disqus_shortname = '<?php echo strtolower(get_option('disqus_forum_url')); ?>';
+	var disqus_title = <?php echo json_encode(dsq_title_for_post($post)); ?>;
 	<?php if (false && get_option('disqus_developer')): ?>
 		var disqus_developer = 1;
 	<?php endif; ?>
