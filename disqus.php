@@ -4,18 +4,19 @@ Plugin Name: Disqus Comment System
 Plugin URI: http://disqus.com/
 Description: The Disqus comment system replaces your WordPress comment system with your comments hosted and powered by Disqus. Head over to the Comments admin page to set up your DISQUS Comment System.
 Author: Disqus <team@disqus.com>
-Version: 2.33.8752
+Version: 2.40
 Author URI: http://disqus.com/
 */
 
-require_once('lib/api.php');
+require_once('lib/wpapi.php');
 
-define('DISQUS_URL',			'http://disqus.com');
-define('DISQUS_API_URL',		DISQUS_URL);
+define('DISQUS_URL',			'http://disqus.com/');
+define('DISQUS_API_URL',		DISQUS_URL . 'api/');
 define('DISQUS_DOMAIN',			'disqus.com');
-define('DISQUS_IMPORTER_URL',	'http://import.disqus.net');
-define('DISQUS_MEDIA_URL',		'http://media.disqus.com');
+define('DISQUS_IMPORTER_URL',	'http://import.disqus.net/');
+define('DISQUS_MEDIA_URL',		'http://disqus.com/media/');
 define('DISQUS_RSS_PATH',		'/latest.rss');
+define('DISQUS_CAN_EXPORT',		is_file(dirname(__FILE__) . '/export.php'));
 
 function dsq_plugin_basename($file) {
 	$file = dirname($file);
@@ -48,7 +49,7 @@ define('DSQ_PLUGIN_URL', WP_CONTENT_URL . '/plugins/' . dsq_plugin_basename(__FI
  * @global	string	$dsq_version
  * @since	1.0
  */
-$dsq_version = '2.33';
+$dsq_version = '2.40';
 $mt_dsq_version = '2.01';
 /**
  * Response from Disqus get_thread API call for comments template.
@@ -77,7 +78,7 @@ $dsq_cc_script_embedded = false;
  * @global	string	$dsq_api
  * @since	1.0
  */
-$dsq_api = new DisqusAPI(get_option('disqus_forum_url'), get_option('disqus_api_key'));
+$dsq_api = new DisqusWordPressAPI(get_option('disqus_forum_url'), get_option('disqus_api_key'));
 /**
  * DISQUS is_feed check.
  *
@@ -105,10 +106,6 @@ $DSQ_QUERY_POST_IDS = array();
 /**
  * Helper functions.
  */
-
-function dsq_legacy_mode() {
-	return get_option('disqus_forum_url') && !get_option('disqus_api_key');
-}
 
 function dsq_is_installed() {
 	return get_option('disqus_forum_url') && get_option('disqus_api_key');
@@ -168,7 +165,8 @@ function dsq_sync_comments($post, $comments) {
 
 	// Get last_comment_date id for $post with Disqus metadata
 	// (This is the date that is stored in the Disqus DB.)
-	$last_comment_date = $wpdb->get_var('SELECT max(comment_date) FROM ' . $wpdb->prefix . 'comments WHERE comment_post_ID=' . intval($post->ID) . " AND comment_agent LIKE 'Disqus/%';");
+	$last_comment_date = $wpdb->get_var($wpdb->prepare('SELECT max(comment_date) FROM ' . $wpdb->comments . ' WHERE comment_post_ID = %d AND comment_agent LIKE \'Disqus/%%\'', $post->ID));
+
 	if ( $last_comment_date ) {
 		$last_comment_date = strtotime($last_comment_date);
 	}
@@ -178,26 +176,36 @@ function dsq_sync_comments($post, $comments) {
 	}
 
 	foreach ( $comments as $comment ) {
-		if ( $comment['imported'] ) {
+		$ts = strtotime($comment->created_at);
+		if ( $comment->imported ) {
 			continue;
-		} else if ( $comment['date'] <= $last_comment_date ) {
+		} else if ( $ts <= $last_comment_date ) {
 			// If comment date of comment is <= last_comment_date, skip comment.
 			continue;
 		} else {
 			// Else, insert_comment
 			$commentdata = array(
 				'comment_post_ID' => $post->ID,
-				'comment_author' => $comment['user']['display_name'],
-				'comment_author_email' => $comment['user']['email'],
-				'comment_author_url' => $comment['user']['url'],
-				'comment_author_IP' => $comment['user']['ip_address'],
-				'comment_date' => date('Y-m-d H:i:s', $comment['date']),
-				'comment_date_gmt' => date('Y-m-d H:i:s', $comment['date_gmt']),
-				'comment_content' => $comment['message'],
+				'comment_date' => $comment->created_at,
+				'comment_date_gmt' => $comment->created_at,
+				'comment_content' => $comment->message,
 				'comment_approved' => 1,
-				'comment_agent' => 'Disqus/1.0:' . intval($comment['id']),
+				'comment_agent' => 'Disqus/1.0:' . intval($comment->id),
 				'comment_type' => '',
 			);
+			if ($comment->is_anonymous) {
+				$commentdata['comment_author'] = $comment->anonymous_author->name;
+				$commentdata['comment_author_email'] = $comment->anonymous_author->email;
+				$commentdata['comment_author_url'] = $comment->anonymous_author->url;
+				$commentdata['comment_author_IP'] = $comment->anonymous_author->ip_address;
+			}
+			else {
+				$commentdata['comment_author'] = $comment->author->display_name;
+				$commentdata['comment_author_email'] = $comment->author->email;
+				$commentdata['comment_author_url'] = $comment->author->url;
+				$commentdata['comment_author_IP'] = $comment->author->ip_address;
+			}
+			
 			wp_insert_comment($commentdata);
 		}
 	}
@@ -205,12 +213,15 @@ function dsq_sync_comments($post, $comments) {
 	if( isset($_POST['dsq_api_key']) && $_POST['dsq_api_key'] == get_option('disqus_api_key') ) {
 		if( isset($_GET['dsq_sync_action']) && isset($_GET['dsq_sync_comment_id']) ) {
 			$comment_parts = explode('=', $_GET['dsq_sync_comment_id']);
-			if( 'wp_id' == $comment_parts[0] ) {
-				$comment_id = intval($comment_parts[1]);
-			} else {
-				$comment_id = $wpdb->get_var('SELECT comment_ID FROM ' . $wpdb->prefix . 'comments WHERE comment_post_ID=' . intval($post->ID) . " AND comment_agent LIKE 'Disqus/1.0:" . intval($comment_parts[1]) . "'");
-			}
 
+			if (!($comment_id = intval($comment_parts[1])) > 0) {
+				return;
+			}
+			
+			if( 'wp_id' != $comment_parts[0] ) {
+				$comment_id = $wpdb->get_var($wpdb->prepare('SELECT comment_ID FROM ' . $wpdb->comments . ' WHERE comment_post_ID = %d AND comment_agent LIKE %s', intval($post->ID), 'Disqus/1.0:' . $comment_id));
+			}
+				
 			switch( $_GET['dsq_sync_action'] ) {
 				case 'mark_spam':
 					wp_set_comment_status($comment_id, 'spam');
@@ -230,37 +241,52 @@ function dsq_sync_comments($post, $comments) {
 }
 
 function dsq_request_handler() {
+	global $dsq_response;
+	global $dsq_api;
+	global $post;
+	
 	if (!empty($_GET['cf_action'])) {
 		switch ($_GET['cf_action']) {
+			case 'sync_comments':
+				if( !( $post_id = $_GET['post_id'] ) ) {
+					header("HTTP/1.0 400 Bad Request");
+					die();
+				}
+				// schedule the event for 30 seconds from now in case they
+				// happen to make a quick post
+				wp_schedule_single_event(time(), 'dsq_sync_post', array($post_id));
+				die('OK');
+			break;
 			case 'export_comments':
-				if (current_user_can('manage_options')) {
-// handle vars
+				if (current_user_can('manage_options') && DISQUS_CAN_EXPORT) {
+					$timestamp = intval($_GET['timestamp']);
 					$post_id = intval($_GET['post_id']);
 					$limit = 2;
 					global $wpdb, $dsq_api;
-					$posts = $wpdb->get_results("
+					$posts = $wpdb->get_results($wpdb->prepare("
 						SELECT * 
 						FROM $wpdb->posts 
 						WHERE post_type != 'revision'
 						AND post_status = 'publish'
 						AND comment_count > 0
-						AND ID > $post_id
+						AND ID > %d
 						ORDER BY ID ASC
 						LIMIT $limit
-					");
+					", $post_id));
 					$first_post_id = $posts[0]->ID;
 					$last_post_id = $posts[(count($posts) - 1)]->ID;
-					$max_post_id = $wpdb->get_var("
+					$max_post_id = $wpdb->get_var($wpdb->prepare("
 						SELECT MAX(ID)
 						FROM $wpdb->posts 
 						WHERE post_type != 'revision'
 						AND post_status = 'publish'
 						AND comment_count > 0
-						AND ID > $post_id
-					");
-					if ($last_post_id == $max_post_id) {
+						AND ID > %d
+					", $post_id));
+					$eof = (int)($last_post_id == $max_post_id);
+					if ($eof) {
 						$status = 'complete';
-						$msg = 'All comments sent to Disqus!';
+						$msg = 'Your comments have been sent to Disqus and queued for import!<br/><a href="'.DISQUS_IMPORTER_URL.'" target="_blank">See the status of your import at Disqus</a>';
 					}
 					else {
 						$status = 'partial';
@@ -275,26 +301,64 @@ function dsq_request_handler() {
 					if (count($posts)) {
 						include_once(dirname(__FILE__) . '/export.php');
 						$wxr = dsq_export_wp($posts);
-						$import_id = $dsq_api->import_wordpress_comments($wxr);
-						if ($import_id < 0) {
+						$response = $dsq_api->import_wordpress_comments($wxr, $timestamp, $eof);
+						if (!($response['group_id'] > 0)) {
 							$result = 'fail';
 							$msg = '<p class="status dsq-export-fail">Sorry, something unexpected happened with the export. Please <a href="#" id="dsq_export_retry">try again</a></p><p>If your API key has changed, you may need to reinstall Disqus (deactivate the plugin and then reactivate it). If you are still having issues, refer to the <a href="http://disqus.com/help/wordpress" onclick="window.open(this.href); return false">WordPress help page</a>.</p>';
 						}
 						else {
+							if ($eof) {
+								$msg = 'Your comments have been sent to Disqus and queued for import!<br/><a href="'.$response['link'].'" target="_blank">See the status of your import at Disqus</a>';
+								
+							}
 							$result = 'success';
 						}
 					}
 // send AJAX response
-					$response = compact('result', 'status', 'last_post_id', 'msg');
+					$response = compact('result', 'timestamp', 'status', 'last_post_id', 'msg', 'eof');
 					header('Content-type: text/javascript');
 					echo cf_json_encode($response);
 					die();
 				}
-				break;
+			break;
 		}
 	}
 }
+
 add_action('init', 'dsq_request_handler');
+
+function dsq_sync_post($post_id) {
+	global $dsq_api;
+	
+	$post = get_post($post_id);
+
+	// Call update_thread to ensure our permalink is up to date
+	dsq_update_permalink($post);
+
+	// Pull comments from API
+	$dsq_response = $dsq_api->get_thread($post);
+	if( $dsq_response < 0 ) {
+		// header("HTTP/1.0 500 Internal Server Error");
+		echo 'There was an error when attempting to sync comments';
+		return;
+	}
+	// Sync comments with database.
+	dsq_sync_comments($post, $dsq_response);
+}
+
+add_action('dsq_sync_post', 'dsq_sync_post');
+
+function dsq_update_permalink($post) {
+	global $dsq_api;
+
+	$response = $dsq_api->api->update_thread(null, array(
+		'thread_identifier'	=> dsq_identifier_for_post($post),
+		'title' => dsq_title_for_post($post),
+		'url' => dsq_link_for_post($post)
+	));
+	
+	return $response;
+}
 
 /**
  *  Compatibility
@@ -426,16 +490,14 @@ function esc_attr( $text ) {
  */
 
 function dsq_get_style() {
-	echo "<link rel=\"stylesheet\" href=\"" . DISQUS_API_URL ."/stylesheets/" .  strtolower(get_option('disqus_forum_url')) . "/disqus.css?v=2.0\" type=\"text/css\" media=\"screen\" />";
+	echo "<link rel=\"stylesheet\" href=\"" . DISQUS_URL ."stylesheets/" .  strtolower(get_option('disqus_forum_url')) . "/disqus.css?v=2.0\" type=\"text/css\" media=\"screen\" />";
 }
 
 add_action('wp_head','dsq_get_style');
 
 function dsq_comments_template($value) {
-	global $dsq_response;
-	global $dsq_sort;
-	global $dsq_api;
 	global $post;
+	global $comments;
 
 	if ( !( is_singular() && ( have_comments() || 'open' == $post->comment_status ) ) ) {
 		return;
@@ -445,31 +507,9 @@ function dsq_comments_template($value) {
 		return $value;
 	}
 
-	if ( dsq_legacy_mode() ) {
-		return dirname(__FILE__) . '/comments-legacy.php';
+	if ( !dsq_is_installed() ) {
+		return $value;
 	}
-
-	$permalink = get_permalink();
-	$title = get_the_title();
-	$excerpt = get_the_excerpt();
-
-	$dsq_sort = get_option('disqus_sort');
-	if ( is_numeric($_COOKIE['disqus_sort']) ) {
-		$dsq_sort = $_COOKIE['disqus_sort'];
-	}
-
-	if ( is_numeric($_GET['dsq_sort']) ) {
-		setcookie('disqus_sort', $_GET['dsq_sort']);
-		$dsq_sort = $_GET['dsq_sort'];
-	}
-
-	// Call "get_thread" API method.
-	$dsq_response = $dsq_api->get_thread($post, $permalink, $title, $excerpt);
-	if( $dsq_response < 0 ) {
-		return false;
-	}
-	// Sync comments with database.
-	dsq_sync_comments($post, $dsq_response['posts']);
 
 	// TODO: If a disqus-comments.php is found in the current template's
 	// path, use that instead of the default bundled comments.php
@@ -483,7 +523,7 @@ function dsq_comments_number($comment_text) {
 	global $post;
 
 	if ( dsq_can_replace() ) {
-		return '<span class="dsq-postid-'.$post->ID.'">View Comments</span>';
+		return '<span class="dsq-postid" rel="'.htmlspecialchars(dsq_identifier_for_post($post)).'">View Comments</span>';
 	} else {
 		return $comment_text;
 	}
@@ -627,17 +667,18 @@ dsq_fire_export = function() {
 dsq_export_comments = function() {
 	var $ = jQuery;
 	var status = $('#dsq_export .status');
-	var post_id = status.attr('rel') || 0;
+	var export_info = (status.attr('rel') || '0|' + (new Date().getTime()/1000)).split('|');
 	$.get(
 		'<?php echo admin_url('index.php'); ?>',
 		{
 			cf_action: 'export_comments',
-			post_id: post_id
+			post_id: export_info[0],
+			timestamp: export_info[1]
 		},
 		function(response) {
 			switch (response.result) {
 				case 'success':
-					status.html(response.msg).attr('rel', response.last_post_id);
+					status.html(response.msg).attr('rel', response.last_post_id + '|' + response.timestamp);
 					switch (response.status) {
 						case 'partial':
 							dsq_export_comments();
@@ -672,9 +713,22 @@ function dsq_warning() {
 		dsq_manage_dialog('You must <a href="edit-comments.php?page=disqus">configure the plugin</a> to enable Disqus Comments.', true);
 	}
 
-	if ( dsq_legacy_mode() && $_GET['page'] == 'disqus' ) {
+	if ( !dsq_is_installed() && $_GET['page'] == 'disqus' ) {
 		dsq_manage_dialog('Disqus Comments has not yet been configured. (<a href="edit-comments.php?page=disqus">Click here to configure</a>)');
 	}
+}
+
+/**
+ * Wrapper for built-in __() which pulls all text from
+ * the disqus domain and supports variable interpolation.
+ */
+function dsq_i($text, $params=null) {
+	if (!is_array($params))
+	{
+		$params = func_get_args();
+		$params = array_slice($params, 1);
+	}
+	return vsprintf(__($text, 'disqus'), $params);
 }
 
 // catch original query
@@ -725,25 +779,36 @@ function dsq_loop_end($query) {
 }
 add_action('loop_end', 'dsq_loop_end');
 
-function dsq_js_comment_count_url() {
-	return 'http://'.strtolower(get_option('disqus_forum_url')).'.'.DISQUS_DOMAIN.'/get_num_replies_from_wpid.js?v=2.2&amp;t=span';
-}
+// if someone has a better hack, let me know
+// prevents duplicate calls to count.js
+$_HAS_COUNTS = false;
 
 function dsq_output_loop_comment_js($post_ids = null) {
+	global $_HAS_COUNTS;
+	if ($_HAS_COUNTS) return;
+	$_HAS_COUNTS = true;
 	if (count($post_ids)) {
-		$post_id_str = '';
-		$i = 0;
-		foreach ($post_ids as $post_id) {
-			$post_id_str .= '&amp;wpid'.$i.'='.$post_id;
-			$i++;
-		}
 ?>
 	<script type="text/javascript">
 	// <![CDATA[
-		(function() {
-			document.write('<script charset="utf-8" type="text/javascript" src="<?php echo dsq_js_comment_count_url().$post_id_str; ?>"><' + '/script>');
-
-		})();
+		var disqus_shortname = '<?php echo strtolower(get_option('disqus_forum_url')); ?>';
+		var disqus_domain = '<?php echo DISQUS_DOMAIN; ?>';
+		(function () {
+			var nodes = document.getElementsByTagName('span');
+			for (var i = 0, url; i < nodes.length; i++) {
+				if (nodes[i].className.indexOf('dsq-postid') != -1) {
+					nodes[i].parentNode.setAttribute('data-disqus-identifier', nodes[i].getAttribute('rel'));
+					url = nodes[i].parentNode.href.split('#', 1);
+					if (url.length == 1) url = url[0];
+					else url = url[1]
+					nodes[i].parentNode.href = url + '#disqus_thread';
+				}
+			}
+			var s = document.createElement('script'); s.async = true;
+			s.type = 'text/javascript';
+			s.src = 'http://' + disqus_domain + '/forums/' + disqus_shortname + '/count.js';
+			(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+		}());
 	//]]>
 	</script>
 <?php
@@ -755,17 +820,24 @@ function dsq_output_footer_comment_js() {
 ?>
 	<script type="text/javascript">
 	// <![CDATA[
-		(function() {
+		var disqus_shortname = '<?php echo strtolower(get_option('disqus_forum_url')); ?>';
+		var disqus_domain = '<?php echo DISQUS_DOMAIN; ?>';
+		(function () {
 			var nodes = document.getElementsByTagName('span');
-			var query = '&';
-			for (var i = 0; i < nodes.length; i++) {
+			for (var i = 0, url; i < nodes.length; i++) {
 				if (nodes[i].className.indexOf('dsq-postid') != -1) {
-					query += 'wpid' + i + '=' + encodeURIComponent(nodes[i].className.replace('dsq-postid-', '')) + '&';
+					nodes[i].parentNode.setAttribute('data-disqus-identifier', nodes[i].getAttribute('rel'));
+					url = nodes[i].parentNode.href.split('#', 1);
+					if (url.length == 1) url = url[0];
+					else url = url[1]
+					nodes[i].parentNode.href = url + '#disqus_thread';
 				}
 			}
-			document.write('<script charset="utf-8" type="text/javascript" src="<?php echo dsq_js_comment_count_url(); ?>' + query + '"><' + '/script>');
-
-		})();
+			var s = document.createElement('script'); s.async = true;
+			s.type = 'text/javascript';
+			s.src = 'http://' + disqus_domain + '/forums/' + disqus_shortname + '/count.js';
+			(document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+		}());
 	//]]>
 	</script>
 <?php
@@ -791,30 +863,8 @@ add_action('pre_post_update', 'dsq_prev_permalink');
 function dsq_check_permalink($post_id) {
 	global $dsq_prev_permalinks;
 	if (!empty($dsq_prev_permalinks['post_'.$post_id]) && $dsq_prev_permalinks['post_'.$post_id] != get_permalink($post_id)) {
-// API request to get old DSQ ID - get_thread_by_url
 		$post = get_post($post_id);
-		global $dsq_api;
-		$thread = $dsq_api->get_thread(
-			$post,
-			$dsq_prev_permalinks['post_'.$post_id],
-			get_the_title($post_id),
-			get_the_excerpt($post_id)
-		);
-// API request to update DSQ ID to new permalink - update_thread
-		if (is_array($thread) && !empty($thread['thread_id'])) {
-			$http = new WP_Http;
-			$response = $http->request(
-				DISQUS_API_URL . '/api/update_thread/', 
-				array(
-					'method' => 'POST',
-					'body' => array(
-						'thread_id' => $thread['thread_id'],
-						'url' => get_permalink($post_id),
-						'forum_api_key' => $dsq_api->forum_api_key,
-					)
-				)
-			);
-		}
+		dsq_update_permalink($post);
 	}
 }
 add_action('edit_post', 'dsq_check_permalink');
@@ -973,5 +1023,19 @@ function dsq_hmacsha1($data, $key) {
     return bin2hex($hmac);
 }
 
+function dsq_identifier_for_post($post) {
+	return $post->ID . ' ' . $post->guid;
+}
+
+function dsq_title_for_post($post) {
+	$title = get_the_title($post);
+	$title = strip_tags($title, DISQUS_ALLOWED_HTML);
+	$title = urlencode($title);
+	return $title;
+}
+
+function dsq_link_for_post($post) {
+	return get_permalink($post);
+}
 
 ?>
