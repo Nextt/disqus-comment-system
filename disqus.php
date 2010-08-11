@@ -4,11 +4,11 @@ Plugin Name: Disqus Comment System
 Plugin URI: http://disqus.com/
 Description: The Disqus comment system replaces your WordPress comment system with your comments hosted and powered by Disqus. Head over to the Comments admin page to set up your DISQUS Comment System.
 Author: Disqus <team@disqus.com>
-Version: 2.41
+Version: 2.42
 Author URI: http://disqus.com/
 */
 
-require_once('lib/wpapi.php');
+require_once(dirname(__FILE__) . '/lib/wpapi.php');
 
 define('DISQUS_URL',			'http://disqus.com/');
 define('DISQUS_API_URL',		DISQUS_URL . 'api/');
@@ -17,6 +17,20 @@ define('DISQUS_IMPORTER_URL',	'http://import.disqus.net/');
 define('DISQUS_MEDIA_URL',		'http://disqus.com/media/');
 define('DISQUS_RSS_PATH',		'/latest.rss');
 define('DISQUS_CAN_EXPORT',		is_file(dirname(__FILE__) . '/export.php'));
+
+/**
+ * Returns an array of all option identifiers used by DISQUS.
+ */
+function dsq_options() {
+	return array(
+		'disqus_forum_url',
+		'disqus_api_key',
+		'disqus_user_api_key',
+		'disqus_partner_key',
+		'disqus_replace',
+		'disqus_cc_fix',
+	);
+}
 
 function dsq_plugin_basename($file) {
 	$file = dirname($file);
@@ -107,6 +121,9 @@ $DSQ_QUERY_POST_IDS = array();
  * Helper functions.
  */
 
+/**
+ * Tests if required options are configured to display the Disqus embed.
+ */
 function dsq_is_installed() {
 	return get_option('disqus_forum_url') && get_option('disqus_api_key');
 }

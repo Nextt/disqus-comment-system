@@ -28,10 +28,9 @@ if( isset($_POST['export']) and DISQUS_CAN_EXPORT ) {
 
 // Handle uninstallation.
 if ( isset($_POST['uninstall']) ) {
-	update_option('disqus_forum_url', '');
-	update_option('disqus_api_key', '');
-	update_option('disqus_user_api_key', '');
-	update_option('disqus_partner_key', '');
+	foreach (dsq_options() as $opt) {
+		delete_option($opt);
+	}
 }
 
 // Clean-up POST parameters.
@@ -49,6 +48,7 @@ if ( isset($_POST['dsq_forum']) && isset($_POST['dsq_user_api_key']) ) {
 		dsq_manage_dialog(dsq_i('There was an error completing the installation of Disqus. If you are still having issues, refer to the <a href="http://disqus.com/help/wordpress">WordPress help page</a>.'), true);
 	} else {
 		update_option('disqus_api_key', $api_key);
+		update_option('disqus_user_api_key', $_POST['dsq_user_api_key']);
 		update_option('disqus_replace', 'all');
 	}
 	
@@ -188,7 +188,7 @@ case 0:
 	$dsq_replace = get_option('disqus_replace');
 	$dsq_forum_url = strtolower(get_option('disqus_forum_url'));
 	$dsq_api_key = get_option('disqus_api_key');
-	$dsq_user_api_key = get_option('dsq_user_api_key');
+	$dsq_user_api_key = get_option('disqus_user_api_key');
 	$dsq_partner_key = get_option('disqus_partner_key');
 	$dsq_cc_fix = get_option('disqus_cc_fix');
 ?>
@@ -290,11 +290,16 @@ case 0:
 		<p><?php echo dsq_i('Having problems with the plugin? <a href="%s">Drop us a line</a> and include the following details and we\'ll do what we can.', 'mailto:help+wp@disqus.com'); ?></p>
 		<textarea style="width:90%; height:200px;">URL: <?php echo get_option('siteurl'); ?> 
 Version: <?php echo $wp_version; ?> 
+Active Theme: <?php $theme = get_theme(get_current_theme()); echo $theme['Name'].' '.$theme['Version']; ?> 
 
 Plugin Version: <?php echo $dsq_version; ?> 
-Forum Shortname: <?php echo get_option('disqus_forum_url'); ?> 
 
-Active Theme: <?php $theme = get_theme(get_current_theme()); echo $theme['Name'].' '.$theme['Version']; ?> 
+Settings:
+
+dsq_is_installed: <?php echo dsq_is_installed(); ?> 
+<? foreach (dsq_options() as $opt) {
+	echo $opt.': '.get_option($opt)."\n";
+} ?>
 
 Plugins:
 

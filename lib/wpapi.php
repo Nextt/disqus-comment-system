@@ -11,7 +11,7 @@
  */
 
 require_once(ABSPATH.WPINC.'/http.php');
-require_once('api/disqus/disqus.php');
+require_once(dirname(__FILE__) . '/api/disqus/disqus.php');
 /** @#+
  * Constants
  */
