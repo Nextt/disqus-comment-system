@@ -29,7 +29,7 @@
 	<?php endforeach; ?>
 			</ul>
 		</div>
-		<?
+		<?php
 	}
 	?>
 </div>
@@ -61,12 +61,10 @@
 		config.callbacks.preData.push(function() {
 			// clear out the container (its filled for SEO/legacy purposes)
 			document.getElementById(disqus_container_id).innerHTML = '';
-		})
+		});
 		config.callbacks.onReady.push(function() {
 			// sync comments in the background so we don't block the page
-			var req = new XMLHttpRequest();
-			req.open('GET', '?cf_action=sync_comments&post_id=<?php echo $post->ID; ?>', true);
-			req.send(null);
+			DISQUS.request.get('?cf_action=sync_comments&post_id=<?php echo $post->ID; ?>');
 		});
 	};
 	var facebookXdReceiverPath = '<?php echo DSQ_PLUGIN_URL . '/xd_receiver.htm' ?>';
