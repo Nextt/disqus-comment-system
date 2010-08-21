@@ -128,7 +128,7 @@ foreach ( $dsq_sites as $counter => $dsq_site ):
 endforeach;
 ?>
 						<hr />
-						<a href="http://disqus.com/comments/register/"><?php echo dsq_i('Or register a new one on the Disqus website.'); ?></a>
+						<a href="<?php echo DISQUS_URL; ?>comments/register/"><?php echo dsq_i('Or register a new one on the Disqus website.'); ?></a>
 					</td>
 				</tr>
 			</table>

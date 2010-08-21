@@ -3,7 +3,7 @@ Contributors: disqus, alexkingorg, crowdfavorite
 Tags: comments, threaded, email, notification, spam, avatars, community, profile, widget
 Requires at least: 2.8
 Tested up to: 3.0
-Stable tag: 2.43
+Stable tag: 2.45
 
 The Disqus comment system replaces your WordPress comment system with your comments hosted and powered by Disqus.
 
@@ -61,6 +61,16 @@ the disqus directory). If the old plugin directory was 'disqus-comment-system'
 you should remove it, and the new plugin should be stored in 'disqus'.
 
 == Changes ==
+
+2.45
+
+* Comments should now store thread information as well as certain other meta data.
+* Optimize get_thread polling to only pull comments which aren't stored properly.
+
+2.44
+
+* Fixed JavaScript response for comments sync call.
+* Comments are now marked as closed while showing the embed (fixes showing default respond form).
 
 2.43
 

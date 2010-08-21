@@ -74,12 +74,13 @@ class DisqusWordPressAPI {
 		return $response->thread;
 	}
 
-	function get_thread($post) {
+	function get_thread($post, $start_id=0) {
 		$identifier = dsq_identifier_for_post($post);
 
 		$response = $this->api->get_thread_posts(null, array(
 			'thread_identifier'	=> $identifier,
 			'filter' => 'approved',
+			'start_id' => $start_id,
 		));
 		return $response;
 	}

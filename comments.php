@@ -81,11 +81,11 @@
 			if( $count ) { echo ','; }
 ?>
 			{
-				'author_name':	'<?php echo htmlspecialchars(get_comment_author(), ENT_QUOTES); ?>',
-				'author_url':	'<?php echo htmlspecialchars(get_comment_author_url(), ENT_QUOTES); ?>',
-				'date':			'<?php comment_date('m/d/Y h:i A'); ?>',
-				'excerpt':		'<?php echo str_replace(array("\r\n", "\n", "\r"), '<br />', htmlspecialchars(get_comment_excerpt(), ENT_QUOTES)); ?>',
-				'type':			'<?php echo $comment_type; ?>'
+				'author_name':	<?php echo cf_json_encode(get_comment_author()); ?>,
+				'author_url':	<?php echo cf_json_encode(get_comment_author_url()); ?>,
+				'date':			<?php echo cf_json_encode(get_comment_date('m/d/Y h:i A')); ?>,
+				'excerpt':		<?php echo cf_json_encode(str_replace(array("\r\n", "\n", "\r"), '<br />', get_comment_excerpt())); ?>,
+				'type':			<?php echo cf_json_encode($comment_type); ?>
 			}
 <?php
 			$count++;
@@ -93,7 +93,7 @@
 	}
 ?>
 		],
-		'trackback_url': '<?php trackback_url(); ?>'
+		'trackback_url': <?php echo cf_json_encode(get_trackback_url()); ?>
 	};
 </script>
 

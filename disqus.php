@@ -4,7 +4,7 @@ Plugin Name: Disqus Comment System
 Plugin URI: http://disqus.com/
 Description: The Disqus comment system replaces your WordPress comment system with your comments hosted and powered by Disqus. Head over to the Comments admin page to set up your DISQUS Comment System.
 Author: Disqus <team@disqus.com>
-Version: 2.43
+Version: 2.45
 Author URI: http://disqus.com/
 */
 
@@ -63,7 +63,7 @@ define('DSQ_PLUGIN_URL', WP_CONTENT_URL . '/plugins/' . dsq_plugin_basename(__FI
  * @global	string	$dsq_version
  * @since	1.0
  */
-$dsq_version = '2.41';
+$dsq_version = '2.45';
 $mt_dsq_version = '2.01';
 /**
  * Response from Disqus get_thread API call for comments template.
@@ -179,9 +179,11 @@ function dsq_manage_dialog($message, $error = false) {
 
 function dsq_sync_comments($post, $comments) {
 	global $wpdb;
+	
+	$_has_updated_thread = false;
 
 	// Get last_comment_date id for $post with Disqus metadata
-	// (This is the date that is stored in the Disqus DB.)
+	// (This is the date that is stored in the Disqus DB.)	
 	$last_comment_date = $wpdb->get_var($wpdb->prepare('SELECT max(comment_date) FROM ' . $wpdb->comments . ' WHERE comment_post_ID = %d AND comment_agent LIKE \'Disqus/%%\'', $post->ID));
 
 	if ( $last_comment_date ) {
@@ -222,8 +224,19 @@ function dsq_sync_comments($post, $comments) {
 				$commentdata['comment_author_url'] = $comment->author->url;
 				$commentdata['comment_author_IP'] = $comment->author->ip_address;
 			}
-			
-			wp_insert_comment($commentdata);
+			if (!$_has_updated_thread) {
+				update_post_meta($post->ID, 'dsq_thread_id', $comment->thread->id);
+				$_has_updated_thread = true;
+			}
+			$comment_id = wp_insert_comment($commentdata);
+			if ($comment->parent_post) {
+				$parent_id = $wpdb->get_var($wpdb->prepare( "SELECT comment_id FROM $wpdb->commentmeta WHERE meta_key = 'dsq_post_id' AND meta_value = '%s' LIMIT 1", $comment->parent_post));
+				if ($parent_id) {
+					$commentdata['comment_parent'] = $parent_id;
+				}
+			}
+			update_comment_meta($comment_id, 'dsq_parent_post_id', $comment->parent_post);
+			update_comment_meta($comment_id, 'dsq_post_id', $comment->id);
 		}
 	}
 
@@ -272,7 +285,8 @@ function dsq_request_handler() {
 				// schedule the event for 30 seconds from now in case they
 				// happen to make a quick post
 				wp_schedule_single_event(time(), 'dsq_sync_post', array($post_id));
-				die('OK');
+				//dsq_sync_post($post_id);
+				die('');
 			break;
 			case 'export_comments':
 				if (current_user_can('manage_options') && DISQUS_CAN_EXPORT) {
@@ -345,18 +359,25 @@ function dsq_request_handler() {
 add_action('init', 'dsq_request_handler');
 
 function dsq_sync_post($post_id) {
-	global $dsq_api;
+	global $dsq_api, $wpdb;
 	
 	$post = get_post($post_id);
 
 	// Call update_thread to ensure our permalink is up to date
 	dsq_update_permalink($post);
 
+	// get_thread should limit based on last comment date
+	$last_comment_id = $wpdb->get_var($wpdb->prepare( "SELECT cm.comment_id FROM $wpdb->commentmeta as cm INNER JOIN $wpdb->comments as c ON c.comment_ID = cm.comment_id WHERE cm.meta_key = 'dsq_post_id' ORDER BY cm.meta_value LIMIT 1"));
+	if (!$last_comment_id) {
+		$last_comment_id = 0;
+	} else {
+		$last_comment_id++;
+	}
+	
 	// Pull comments from API
-	$dsq_response = $dsq_api->get_thread($post);
+	$dsq_response = $dsq_api->get_thread($post, $last_comment_id);
 	if( $dsq_response < 0 ) {
-		// header("HTTP/1.0 500 Internal Server Error");
-		echo 'There was an error when attempting to sync comments';
+		header("HTTP/1.0 500 Internal Server Error");
 		return;
 	}
 	// Sync comments with database.
@@ -512,7 +533,10 @@ function dsq_get_style() {
 
 add_action('wp_head','dsq_get_style');
 
+// ugly global hack for comments closing
+$EMBED = false;
 function dsq_comments_template($value) {
+	global $EMBED;
 	global $post;
 	global $comments;
 
@@ -531,7 +555,7 @@ function dsq_comments_template($value) {
 	// TODO: If a disqus-comments.php is found in the current template's
 	// path, use that instead of the default bundled comments.php
 	//return TEMPLATEPATH . '/disqus-comments.php';
-
+	$EMBED = true;
 	return dirname(__FILE__) . '/comments.php';
 }
 
@@ -563,6 +587,17 @@ function dsq_plugin_action_links($links, $file) {
 	return $links;
 }
 add_filter('plugin_action_links', 'dsq_plugin_action_links', 10, 2);
+
+/** 
+ * Hide the default comment form to stop spammers by marking all comments
+ * as closed.
+ */
+function dsq_comments_open($open, $post_id=null) {
+	global $EMBED;
+	if ($EMBED) return false;
+	return $open;
+}
+add_filter('comments_open', 'dsq_comments_open');
 
 // Always add Disqus management page to the admin menu
 function dsq_add_pages() {
