@@ -62,10 +62,12 @@
 			// clear out the container (its filled for SEO/legacy purposes)
 			document.getElementById(disqus_container_id).innerHTML = '';
 		});
+		<?php if (!get_option('disqus_manual_sync')): ?>
 		config.callbacks.onReady.push(function() {
 			// sync comments in the background so we don't block the page
 			DISQUS.request.get('?cf_action=sync_comments&post_id=<?php echo $post->ID; ?>');
 		});
+		<?php endif; ?>
 	};
 	var facebookXdReceiverPath = '<?php echo DSQ_PLUGIN_URL . '/xd_receiver.htm' ?>';
 </script>

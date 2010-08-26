@@ -207,6 +207,7 @@ echo '<?xml version="1.0" encoding="' . get_bloginfo('charset') . '"?' . ">\n";
 <rss version="2.0"
 	xmlns:excerpt="http://wordpress.org/export/<?php echo WXR_VERSION; ?>/excerpt/"
 	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:dsq="http://www.disqus.com/"
 	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
 	xmlns:dc="http://purl.org/dc/elements/1.1/"
 	xmlns:wp="http://wordpress.org/export/<?php echo WXR_VERSION; ?>/"
@@ -245,6 +246,7 @@ if (count($posts)) {
 <description></description>
 <content:encoded><?php echo wxr_cdata( apply_filters('the_content_export', $post->post_content) ); ?></content:encoded>
 <excerpt:encoded><?php echo wxr_cdata( apply_filters('the_excerpt_export', $post->post_excerpt) ); ?></excerpt:encoded>
+<dsq:thread_identifier><?php echo dsq_identifier_for_post($post); ?></dsq:thread_identifier>
 <wp:post_id><?php echo $post->ID; ?></wp:post_id>
 <wp:post_date><?php echo $post->post_date; ?></wp:post_date>
 <wp:post_date_gmt><?php echo $post->post_date_gmt; ?></wp:post_date_gmt>

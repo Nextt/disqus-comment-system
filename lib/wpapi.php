@@ -102,6 +102,8 @@ class DisqusWordPressAPI {
 			)
 		);
 		if ($response->errors) {
+			// hack
+			$this->api->last_error = $response->errors;
 			return -1;
 		}
 		$data = unserialize($response['body']);

@@ -72,6 +72,7 @@ if ( isset($_POST['disqus_forum_url']) && isset($_POST['disqus_replace']) ) {
 	update_option('disqus_user_api_key', trim(stripslashes($_POST['disqus_user_api_key'])));
 	update_option('disqus_replace', $_POST['disqus_replace']);
 	update_option('disqus_cc_fix', isset($_POST['disqus_cc_fix']));
+	update_option('disqus_manual_sync', isset($_POST['disqus_manual_sync']));
 	dsq_manage_dialog('Your settings have been changed.');
 }
 
@@ -91,7 +92,7 @@ if ( 2 == $step && isset($_POST['dsq_username']) && isset($_POST['dsq_password']
 	}
 	
 	$dsq_sites = $dsq_api->get_forum_list($dsq_user_api_key);
-	if ( $dsq_sites < 0 ) {
+	if ( $dsq_sites < 0 || !$dsq_sites ) {
 		$step = 1;
 		dsq_manage_dialog($dsq_api->get_last_error(), true);
 	}
@@ -191,6 +192,7 @@ case 0:
 	$dsq_user_api_key = get_option('disqus_user_api_key');
 	$dsq_partner_key = get_option('disqus_partner_key');
 	$dsq_cc_fix = get_option('disqus_cc_fix');
+	$dsq_manual_sync = get_option('disqus_manual_sync');
 ?>
 	<!-- Advanced options -->
 	<div id="dsq-advanced" class="dsq-content dsq-advanced" style="display:none;">
@@ -251,8 +253,17 @@ case 0:
 				<th scope="row" valign="top"><?php echo dsq_i('Comment Counts'); ?></th>
 				<td>
 					<input type="checkbox" id="disqus_comment_count" name="disqus_cc_fix" <?php if($dsq_cc_fix){echo 'checked="checked"';}?> >
-					<label for="disqus_comment_count"<?php echo dsq_i('>Output JavaScript in footer'); ?></label>
+					<label for="disqus_comment_count"><?php echo dsq_i('Output JavaScript in footer'); ?></label>
 					<br /><?php echo dsq_i('NOTE: Check this if you have problems with the comment count displays including: not showing on permalinks, broken featured image carousels, or longer-than-usual homepage load times (<a href="%s" onclick="window.open(this.href); return false">more info</a>).', 'http://disqus.com/help/wordpress'); ?>
+				</td>
+			</tr>
+			
+			<tr>
+				<th scope="row" valign="top"><?php echo dsq_i('Comment Sync'); ?></th>
+				<td>
+					<input type="checkbox" id="disqus_manual_sync" name="disqus_manual_sync" <?php if($dsq_manual_sync){echo 'checked="checked"';}?> >
+					<label for="disqus_manual_sync"><?php echo dsq_i('Disable automated comment importing'); ?></label>
+					<br /><?php echo dsq_i('NOTE: If you have problems with WP cron taking too long and large numbers of comments you may wish to disable the automated sync cron. Keep in mind that this means comments will not automatically get synced to your local Wordpress database.'); ?>
 				</td>
 			</tr>
 			
@@ -274,6 +285,14 @@ case 0:
 				</td>
 			</tr>
 			<?php endif; ?>
+			<tr>
+				<th scope="row" valign="top"><?php echo dsq_i('Sync Disqus with WordPress'); ?></th>
+				<td>
+					<div id="dsq_import">
+						<p class="status"><a href="#" class="button"><?php echo dsq_i('Sync Comments'); ?></a>  <?php echo dsq_i('This will download your Disqus comments and store them locally in WordPress'); ?></p>
+					</div>
+				</td>
+			</tr>
 			<tr>
 				<th scope="row" valign="top"><?php echo dsq_i('Uninstall Disqus Comments'); ?></th>
 				<td>
