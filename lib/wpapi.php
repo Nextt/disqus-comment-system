@@ -62,25 +62,14 @@ class DisqusWordPressAPI {
 		return $this->api->get_forum_api_key($id);
 	}
 	
-	function get_thread_info($post) {
-		$identifier = dsq_identifier_for_post($post);
-		
-		$title = dsq_title_for_post($post);
-		
-		$response = $this->api->thread_by_identifier(array(
-			'identifier'	=> $identifier,
-			'title'			=> $title,
-		));
-		return $response->thread;
-	}
-
-	function get_thread($post, $start_id=0) {
+	function get_forum_posts($start_id=0) {
 		$identifier = dsq_identifier_for_post($post);
 
-		$response = $this->api->get_thread_posts(null, array(
-			'thread_identifier'	=> $identifier,
+		$response = $this->api->get_forum_posts(null, array(
 			'filter' => 'approved',
 			'start_id' => $start_id,
+			'limit' => 100,
+			'order' => 'asc'
 		));
 		return $response;
 	}

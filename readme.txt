@@ -1,9 +1,9 @@
 === Disqus Comment System ===
 Contributors: disqus, alexkingorg, crowdfavorite
-Tags: comments, threaded, email, notification, spam, avatars, community, profile, widget
+Tags: comments, threaded, email, notification, spam, avatars, community, profile, widget, disqus
 Requires at least: 2.8
 Tested up to: 3.0
-Stable tag: 2.46
+Stable tag: 2.48
 
 The Disqus comment system replaces your WordPress comment system with your comments hosted and powered by Disqus.
 
@@ -61,6 +61,18 @@ the disqus directory). If the old plugin directory was 'disqus-comment-system'
 you should remove it, and the new plugin should be stored in 'disqus'.
 
 == Changes ==
+
+2.48
+
+* Comment synchronization has been optimized to be a single call per-site.
+* disqus.css will now only load when displaying comments
+
+2.47
+
+* Fixed a security hole with comment importing.
+* Reverted ability to use default template comments design.
+* Comments will now store which version they were imported under.
+* Added an option to disable server side rendering.
 
 2.46
 

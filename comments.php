@@ -1,13 +1,17 @@
 <?php
-	global $dsq_response, $dsq_version;
+global $dsq_version;
+
+if (DISQUS_DEBUG) {
+	echo "<p><strong>Disqus Debug</strong> thread_id: ".get_post_meta($post->ID, 'dsq_thread_id', true)."</p>";
+}
 ?>
 
 <div id="disqus_thread">
-	<?php
-	if (is_file(TEMPLATEPATH . '/comments.php')) {
-		include(TEMPLATEPATH . '/comments.php');
-	}
-	else {
+	<?php if (!get_option('disqus_disable_ssr')): ?>
+		<?php
+		// if (is_file(TEMPLATEPATH . '/comments.php')) {
+		// 	include(TEMPLATEPATH . '/comments.php');
+		// }
 		?>
 		<div id="dsq-content">
 			<ul id="dsq-comments">
@@ -23,15 +27,13 @@
 						</cite>
 					</div>
 					<div id="dsq-comment-body-<?php echo comment_ID(); ?>" class="dsq-comment-body">
-						<div id="dsq-comment-message-<?php echo comment_ID(); ?>" class="dsq-comment-message"><?php comment_text(); ?></div>
+						<div id="dsq-comment-message-<?php echo comment_ID(); ?>" class="dsq-comment-message"><?php echo wp_filter_kses(comment_text()); ?></div>
 					</div>
 				</li>
 	<?php endforeach; ?>
 			</ul>
 		</div>
-		<?php
-	}
-	?>
+	<?php endif; ?>
 </div>
 
 <a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>

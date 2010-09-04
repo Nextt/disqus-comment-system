@@ -31,6 +31,7 @@ if ( isset($_POST['uninstall']) ) {
 	foreach (dsq_options() as $opt) {
 		delete_option($opt);
 	}
+	unset($_POST);
 }
 
 // Clean-up POST parameters.
@@ -73,6 +74,7 @@ if ( isset($_POST['disqus_forum_url']) && isset($_POST['disqus_replace']) ) {
 	update_option('disqus_replace', $_POST['disqus_replace']);
 	update_option('disqus_cc_fix', isset($_POST['disqus_cc_fix']));
 	update_option('disqus_manual_sync', isset($_POST['disqus_manual_sync']));
+	update_option('disqus_disable_ssr', isset($_POST['disqus_disable_ssr']));
 	dsq_manage_dialog('Your settings have been changed.');
 }
 
@@ -86,15 +88,20 @@ $step = (dsq_is_installed()) ? 0 : ($step ? $step : 1);
 
 if ( 2 == $step && isset($_POST['dsq_username']) && isset($_POST['dsq_password']) ) {
 	$dsq_user_api_key = $dsq_api->get_user_api_key($_POST['dsq_username'], $_POST['dsq_password']);
-	if ( !$dsq_user_api_key ) {
+	if ( $dsq_user_api_key < 0 || !$dsq_user_api_key ) {
 		$step = 1;
 		dsq_manage_dialog($dsq_api->get_last_error(), true);
 	}
 	
-	$dsq_sites = $dsq_api->get_forum_list($dsq_user_api_key);
-	if ( $dsq_sites < 0 || !$dsq_sites ) {
-		$step = 1;
-		dsq_manage_dialog($dsq_api->get_last_error(), true);
+	if ( $step == 2 ) {
+		$dsq_sites = $dsq_api->get_forum_list($dsq_user_api_key);
+		if ( $dsq_sites < 0 ) {
+			$step = 1;
+			dsq_manage_dialog($dsq_api->get_last_error(), true);
+		} else if ( !$dsq_sites ) {
+			$step = 1;
+			dsq_manage_dialog(dsq_i('There aren\'t any sites associated with this account. Maybe you want to <a href="%s">create a site</a>?', 'http://disqus.com/comments/register/'), true);
+		}
 	}
 }
 
@@ -193,6 +200,7 @@ case 0:
 	$dsq_partner_key = get_option('disqus_partner_key');
 	$dsq_cc_fix = get_option('disqus_cc_fix');
 	$dsq_manual_sync = get_option('disqus_manual_sync');
+	$dsq_disable_ssr = get_option('disqus_disable_ssr');
 ?>
 	<!-- Advanced options -->
 	<div id="dsq-advanced" class="dsq-content dsq-advanced" style="display:none;">
@@ -267,6 +275,14 @@ case 0:
 				</td>
 			</tr>
 			
+			<tr>
+				<th scope="row" valign="top"><?php echo dsq_i('Server Side Rendering'); ?></th>
+				<td>
+					<input type="checkbox" id="disqus_disable_ssr" name="disqus_disable_ssr" <?php if($dsq_disable_ssr){echo 'checked="checked"';}?> >
+					<label for="disqus_disable_ssr"><?php echo dsq_i('Disable server side rendering of comments'); ?></label>
+					<br /><?php echo dsq_i('NOTE: This will hide comments from nearly all search engines'); ?>
+				</td>
+			</tr>
 		</table>
 
 		<p class="submit" style="text-align: left">
