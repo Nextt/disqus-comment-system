@@ -1,6 +1,4 @@
 <?php
-global $dsq_version;
-
 if (DISQUS_DEBUG) {
 	echo "<p><strong>Disqus Debug</strong> thread_id: ".get_post_meta($post->ID, 'dsq_thread_id', true)."</p>";
 }
@@ -105,7 +103,7 @@ if (DISQUS_DEBUG) {
 (function() {
 	var dsq = document.createElement('script'); dsq.type = 'text/javascript';
 	dsq.async = true;
-	dsq.src = 'http://' + disqus_shortname + '.' + disqus_domain + '/embed.js?pname=wordpress&pver=<?php echo $dsq_version; ?>';
+	dsq.src = 'http://' + disqus_shortname + '.' + disqus_domain + '/embed.js?pname=wordpress&pver=<?php echo DISQUS_VERSION; ?>';
 	(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
 })();
 </script>

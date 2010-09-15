@@ -1,5 +1,5 @@
 <?php
-global $dsq_version, $dsq_api;
+global $dsq_api;
 
 require(ABSPATH . 'wp-includes/version.php');
 
@@ -205,7 +205,7 @@ case 0:
 	<!-- Advanced options -->
 	<div id="dsq-advanced" class="dsq-content dsq-advanced" style="display:none;">
 		<h2><?php echo dsq_i('Advanced Options'); ?></h2>
-		<?php echo dsq_i('Version: %s', esc_html($dsq_version)); ?>
+		<?php echo dsq_i('Version: %s', esc_html(DISQUS_VERSION)); ?>
 		<form method="POST">
 		<?php wp_nonce_field('dsq-advanced'); ?>
 		<table class="form-table">
@@ -327,7 +327,7 @@ case 0:
 Version: <?php echo $wp_version; ?> 
 Active Theme: <?php $theme = get_theme(get_current_theme()); echo $theme['Name'].' '.$theme['Version']; ?> 
 
-Plugin Version: <?php echo $dsq_version; ?> 
+Plugin Version: <?php echo DISQUS_VERSION; ?> 
 
 Settings:
 

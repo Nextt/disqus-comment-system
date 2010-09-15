@@ -4,7 +4,7 @@ Plugin Name: Disqus Comment System
 Plugin URI: http://disqus.com/
 Description: The Disqus comment system replaces your WordPress comment system with your comments hosted and powered by Disqus. Head over to the Comments admin page to set up your DISQUS Comment System.
 Author: Disqus <team@disqus.com>
-Version: 2.48
+Version: 2.49
 Author URI: http://disqus.com/
 */
 
@@ -20,6 +20,7 @@ define('DISQUS_CAN_EXPORT',		is_file(dirname(__FILE__) . '/export.php'));
 if (!defined('DISQUS_DEBUG')) {
 	define('DISQUS_DEBUG', false);
 }
+define('DISQUS_VERSION',		'2.49');
 
 /**
  * Returns an array of all option identifiers used by DISQUS.
@@ -38,6 +39,7 @@ function dsq_options() {
 		'disqus_disable_ssr',
 		# the last sync comment id (from get_forum_posts)
 		'disqus_last_comment_id',
+		'disqus_version',
 	);
 }
 
@@ -66,14 +68,7 @@ if ( !defined('PLUGINDIR') ) {
 
 define('DSQ_PLUGIN_URL', WP_CONTENT_URL . '/plugins/' . dsq_plugin_basename(__FILE__));
 
-/**
- * Disqus WordPress plugin version.
- *
- * @global	string	$dsq_version
- * @since	1.0
- */
-$dsq_version = '2.48';
-$mt_dsq_version = '2.01';
+$mt_disqus_version = '2.01';
 /**
  * Response from Disqus get_thread API call for comments template.
  *
@@ -187,7 +182,7 @@ function dsq_manage_dialog($message, $error = false) {
 }
 
 function dsq_sync_comments($comments) {
-	global $wpdb, $dsq_version;
+	global $wpdb;
 
 	// user MUST be logged out during this process
 	wp_set_current_user(0);
@@ -219,7 +214,8 @@ function dsq_sync_comments($comments) {
 				// shouldn't ever happen, but we can't be certain
 				continue;
 			}
-		} else if ($wpdb->get_results($wpdb->prepare( "SELECT comment_id FROM $wpdb->commentmeta WHERE meta_key = 'dsq_post_id' AND meta_value = '%s' LIMIT 1", $comment->id))) {
+		}
+		if ($wpdb->get_results($wpdb->prepare( "SELECT comment_id FROM $wpdb->commentmeta WHERE meta_key = 'dsq_post_id' AND meta_value = '%s' LIMIT 1", $comment->id))) {
 			// already exists
 			continue;
 		}
@@ -232,7 +228,7 @@ function dsq_sync_comments($comments) {
 				'comment_date_gmt' => $comment->created_at,
 				'comment_content' => apply_filters('pre_comment_content', $comment->message),
 				'comment_approved' => 1,
-				'comment_agent' => 'Disqus/1.1('.$dsq_version.'):' . intval($comment->id),
+				'comment_agent' => 'Disqus/1.1('.DISQUS_VERSION.'):' . intval($comment->id),
 				'comment_type' => '',
 			);
 			if ($comment->is_anonymous) {
@@ -742,7 +738,14 @@ function dsq_wp_dashboard_setup() {
 add_action('wp_dashboard_setup', 'dsq_wp_dashboard_setup');
 
 function dsq_manage() {
-	include_once(dirname(__FILE__) . '/manage.php');
+	if (dsq_does_need_update() && isset($_POST['upgrade'])) {
+		dsq_install();
+	}
+	if (dsq_does_need_update()) {
+		include_once(dirname(__FILE__) . '/upgrade.php');
+	} else {
+		include_once(dirname(__FILE__) . '/manage.php');
+	}
 }
 
 function dsq_admin_head() {
@@ -1202,4 +1205,45 @@ function dsq_link_for_post($post) {
 	return get_permalink($post);
 }
 
+function dsq_does_need_update() {
+	$version = (string)get_option('disqus_version');
+	if (!$version) {
+		$version = '0';
+	}
+	
+	if (version_compare($version, '2.49', '<')) {
+		return true;
+	}
+	
+	return false;
+}
+
+function dsq_install($allow_database_install=true) {
+	global $wpdb, $userdata;
+
+	$version = (string)get_option('disqus_version');
+	if (!$version) {
+		$version = '0';
+	}
+
+	if ($allow_database_install)
+	{
+		dsq_install_database($version);
+	}
+	
+	if (version_compare($version, DISQUS_VERSION, '=')) return;
+
+	update_option('disqus_version', DISQUS_VERSION);
+}
+
+/**
+ * Initializes the database if it's not already present.
+ */
+function dsq_install_database($version=0) {
+	global $wpdb;
+	
+	if (version_compare($version, '2.49', '<')) {
+		$wpdb->query("CREATE INDEX disqus_dupecheck ON `".$wpdb->prefix."commentmeta` (meta_key, meta_value(11));");
+	}
+}
 ?>
