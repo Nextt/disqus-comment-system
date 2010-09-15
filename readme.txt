@@ -3,7 +3,7 @@ Contributors: disqus, alexkingorg, crowdfavorite
 Tags: comments, threaded, email, notification, spam, avatars, community, profile, widget, disqus
 Requires at least: 2.8
 Tested up to: 3.0
-Stable tag: 2.49
+Stable tag: 2.50
 
 The Disqus comment system replaces your WordPress comment system with your comments hosted and powered by Disqus.
 
@@ -62,9 +62,19 @@ you should remove it, and the new plugin should be stored in 'disqus'.
 
 == Changes ==
 
+2.50
+
+* Added missing file.
+
 2.49
 
 * Database usage has been optimized for storing comment meta data.
+
+You can perform this migration automatically by visiting Comments -> Disqus, or if
+you have a large database, you may do this by hand:
+
+CREATE INDEX disqus_dupecheck ON `wp_commentmeta` (meta_key, meta_value(11));
+INSERT INTO `wp_options` (blog_id, option_name, option_value, autoload) VALUES (0, 'disqus_version', '2.49', 'yes') ON DUPLICATE KEY UPDATE option_value = VALUES(option_value);
 
 2.48
 
