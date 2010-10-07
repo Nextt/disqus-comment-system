@@ -63,13 +63,12 @@ class DisqusWordPressAPI {
 	}
 	
 	function get_forum_posts($start_id=0) {
-		$identifier = dsq_identifier_for_post($post);
-
 		$response = $this->api->get_forum_posts(null, array(
 			'filter' => 'approved',
 			'start_id' => $start_id,
 			'limit' => 100,
-			'order' => 'asc'
+			'order' => 'asc',
+			'full_info' => 1
 		));
 		return $response;
 	}

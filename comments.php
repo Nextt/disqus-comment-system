@@ -37,6 +37,7 @@ if (DISQUS_DEBUG) {
 <a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
 
 <script type="text/javascript">
+/* <![CDATA[ */
 	var disqus_url = '<?php echo get_permalink(); ?> ';
 	var disqus_identifier = '<?php echo dsq_identifier_for_post($post); ?>';
 	var disqus_container_id = 'disqus_thread';
@@ -70,9 +71,11 @@ if (DISQUS_DEBUG) {
 		<?php endif; ?>
 	};
 	var facebookXdReceiverPath = '<?php echo DSQ_PLUGIN_URL . '/xd_receiver.htm' ?>';
+/* ]]> */
 </script>
 
 <script type="text/javascript">
+/* <![CDATA[ */
 	var DsqLocal = {
 		'trackbacks': [
 <?php
@@ -97,13 +100,16 @@ if (DISQUS_DEBUG) {
 		],
 		'trackback_url': <?php echo cf_json_encode(get_trackback_url()); ?>
 	};
+/* ]]> */
 </script>
 
 <script type="text/javascript">
+/* <![CDATA[ */
 (function() {
 	var dsq = document.createElement('script'); dsq.type = 'text/javascript';
 	dsq.async = true;
 	dsq.src = 'http://' + disqus_shortname + '.' + disqus_domain + '/embed.js?pname=wordpress&pver=<?php echo DISQUS_VERSION; ?>';
 	(document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
 })();
+/* ]]> */
 </script>
