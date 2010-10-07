@@ -11,7 +11,7 @@
  * @version		1.1
  */
 
-require_once('url.php');
+require_once(dirname(__FILE__) . '/url.php');
 
 /** @#+
  * Constants
@@ -37,7 +37,7 @@ define('DISQUS_ACTION_DELETE', 'delete');
 define('DISQUS_ACTION_KILL', 'kill');
 
 if (!extension_loaded('json')) {
-	require_once('json.php');
+	require_once(dirname(__FILE__) . '/json.php');
 	function dsq_json_decode($data) {
 		$json = new JSON;
 		return $json->unserialize($data);
@@ -115,8 +115,11 @@ class DisqusAPI {
 			$args = null;
 		}
 		
-		$response = dsq_urlopen($url, $args);
-		
+		if (!($response = dsq_urlopen($url, $args)) || !$response['code']) {
+			$this->last_error = 'Unable to connect to the Disqus API servers';
+			return false;
+		}
+			
 		$data = dsq_json_decode($response['data']);
 		
 		if(!$data || !$data->succeeded) {
@@ -325,7 +328,7 @@ class DisqusAPI {
 		$params['identifier'] = $identifier;
 		$params['title'] = $title;
 		
-		return $this->call('POST', 'thread_by_identifier', $params);
+		return $this->call('thread_by_identifier', $params, true);
 	}
 	
 	/**
