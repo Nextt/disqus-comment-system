@@ -4,7 +4,7 @@ Plugin Name: Disqus Comment System
 Plugin URI: http://disqus.com/
 Description: The Disqus comment system replaces your WordPress comment system with your comments hosted and powered by Disqus. Head over to the Comments admin page to set up your DISQUS Comment System.
 Author: Disqus <team@disqus.com>
-Version: 2.52
+Version: 2.60
 Author URI: http://disqus.com/
 */
 
@@ -12,25 +12,23 @@ require_once(dirname(__FILE__) . '/lib/wpapi.php');
 
 define('DISQUS_URL',			'http://disqus.com/');
 define('DISQUS_API_URL',		DISQUS_URL . 'api/');
-
-
-define('DISQUS_URL',			'http://disqus.com/');
-define('DISQUS_API_URL',		DISQUS_URL . 'api/');
 define('DISQUS_DOMAIN',			'disqus.com');
-define('DISQUS_IMPORTER_URL',	'http://import.disqus.net/');
+define('DISQUS_IMPORTER_URL',	'http://import.disqus.com/');
 define('DISQUS_MEDIA_URL',		'http://disqus.com/media/');
 define('DISQUS_RSS_PATH',		'/latest.rss');
 define('DISQUS_CAN_EXPORT',		is_file(dirname(__FILE__) . '/export.php'));
 if (!defined('DISQUS_DEBUG')) {
 	define('DISQUS_DEBUG', false);
 }
-define('DISQUS_VERSION',		'2.52');
+define('DISQUS_VERSION',		'2.60');
 
 /**
  * Returns an array of all option identifiers used by DISQUS.
  */
 function dsq_options() {
 	return array(
+		'disqus_public_key',
+		'disqus_secret_key',
 		'disqus_forum_url',
 		'disqus_api_key',
 		'disqus_user_api_key',
@@ -690,7 +688,17 @@ function dsq_comments_template($value) {
 }
 
 // Mark entries in index to replace comments link.
-function dsq_comments_number($comment_text) {
+function dsq_comments_number($count) {
+    global $post;
+
+	if ( dsq_can_replace() ) {
+		return '<span class="dsq-postid" rel="'.htmlspecialchars(dsq_identifier_for_post($post)).'">'.$count.'</span>';
+	} else {
+		return $count;
+	}
+}
+
+function dsq_comments_text($comment_text) {
 	global $post;
 
 	if ( dsq_can_replace() ) {
@@ -1112,7 +1120,8 @@ add_action('admin_notices', 'dsq_warning');
 
 // Only replace comments if the disqus_forum_url option is set.
 add_filter('comments_template', 'dsq_comments_template');
-add_filter('comments_number', 'dsq_comments_number');
+add_filter('comments_number', 'dsq_comments_text');
+add_filter('get_comments_number', 'dsq_comments_number');
 add_filter('bloginfo_url', 'dsq_bloginfo_url');
 
 /**
@@ -1210,8 +1219,15 @@ if(!function_exists('cf_json_encode')) {
 // Single Sign-on Integration
 
 function dsq_sso() {
-	if (!$partner_key = get_option('disqus_partner_key')) {
-		return;
+	if ($key = get_option('disqus_partner_key')) {
+		// use old style SSO
+		$new = false;
+	} elseif (($key = get_option('disqus_secret_key')) && ($public = get_option('disqus_public_key'))) {
+		// use new style SSO
+		$new = true;
+	} else {
+	    // sso is not configured
+		return array();
 	}
 	global $current_user, $dsq_api;
 	get_currentuserinfo();
@@ -1232,12 +1248,16 @@ function dsq_sso() {
 	}
 	$user_data = base64_encode(cf_json_encode($user_data));
 	$time = time();
-	$hmac = dsq_hmacsha1($user_data.' '.$time, $partner_key);
+	$hmac = dsq_hmacsha1($user_data.' '.$time, $key);
 
 	$payload = $user_data.' '.$hmac.' '.$time;
-	echo '<script type="text/javascript" src="http://'.$dsq_api->short_name.'.disqus.com/remote_auth.js?remote_auth_s2='.urlencode($payload).'"></script>';
+	
+	if ($new) {
+		return array('remote_auth_s3'=>$payload, 'api_key'=>$public);
+	} else {
+		return array('remote_auth_s2'=>$payload);
+	}
 }
-add_action('wp_head', 'dsq_sso');
 
 // from: http://www.php.net/manual/en/function.sha1.php#39492
 //Calculate HMAC-SHA1 according to RFC2104

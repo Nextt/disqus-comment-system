@@ -69,6 +69,14 @@ if (DISQUS_DEBUG) {
 			DISQUS.request.get('?cf_action=sync_comments&post_id=<?php echo $post->ID; ?>');
 		});
 		<?php endif; ?>
+		<?php
+		$sso = dsq_sso();
+		if ($sso) {
+		    foreach ($sso as $k=>$v) {
+		        echo "this.page.{$k} = '{$v}';\n";
+		    }
+		}
+		?>
 	};
 	var facebookXdReceiverPath = '<?php echo DSQ_PLUGIN_URL . '/xd_receiver.htm' ?>';
 /* ]]> */

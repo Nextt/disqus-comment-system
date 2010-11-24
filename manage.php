@@ -69,6 +69,8 @@ if ( isset($_POST['disqus_forum_url']) && isset($_POST['disqus_replace']) ) {
 	update_option('disqus_cc_fix', isset($_POST['disqus_cc_fix']));
 	update_option('disqus_manual_sync', isset($_POST['disqus_manual_sync']));
 	update_option('disqus_disable_ssr', isset($_POST['disqus_disable_ssr']));
+	update_option('disqus_public_key', $_POST['disqus_public_key']);
+	update_option('disqus_secret_key', $_POST['disqus_secret_key']);
 	dsq_manage_dialog('Your settings have been changed.');
 }
 
@@ -215,7 +217,11 @@ case 0:
 ?>
 		<div class="dsq-main"<?php if ($show_advanced) echo ' style="display:none;"'; ?>>
 			<h2><?php echo dsq_i('Comments'); ?></h2>
-			<iframe src="<?php echo DISQUS_URL; ?>comments/moderate/<?php if ($url) echo $url . '/'; ?>?template=wordpress" style="width: 100%; height: 800px"></iframe>
+			<iframe src="<?php if ($url) {
+			    echo 'http://'.$url.'.'.DISQUS_DOMAIN.'/admin/moderate/';
+			} else { 
+			    echo DISQUS_URL.'admin/moderate/';
+			} ?>?template=wordpress" style="width: 100%; height: 800px"></iframe>
 		</div>
 <?php } ?>
 	</div>
@@ -229,6 +235,9 @@ case 0:
 	$dsq_cc_fix = get_option('disqus_cc_fix');
 	$dsq_manual_sync = get_option('disqus_manual_sync');
 	$dsq_disable_ssr = get_option('disqus_disable_ssr');
+
+	$dsq_public_key = get_option('disqus_public_key');
+	$dsq_secret_key = get_option('disqus_secret_key');
 ?>
 	<!-- Advanced options -->
 	<div id="dsq-advanced" class="dsq-content dsq-advanced"<?php if (!$show_advanced) echo ' style="display:none;"'; ?>>
@@ -264,13 +273,30 @@ case 0:
 					<?php echo dsq_i('This is set for you when going through the installation steps.'); ?>
 				</td>
 			</tr>
-			
+			<?php if (!empty($dsq_partner_key)) {// this option only shows if it was already present ?>
 			<tr>
 				<th scope="row" valign="top"><?php echo dsq_i('Disqus Partner Key'); ?></th>
 				<td>
 					<input type="text" name="disqus_partner_key" value="<?php echo esc_attr($dsq_partner_key); ?>" tabindex="2">
 					<br />
 					<?php echo dsq_i('Advanced: Used for single sign-on (SSO) integration. (<a href="%s" onclick="window.open(this.href); return false">more info on SSO</a>)', 'http://disqus.com/help/sso'); ?>
+				</td>
+			</tr>
+			<?php } ?>
+			<tr>
+				<th scope="row" valign="top"><?php echo dsq_i('Application Public Key'); ?></th>
+				<td>
+					<input type="text" name="disqus_public_key" value="<?php echo esc_attr($dsq_public_key); ?>" tabindex="2">
+					<br />
+					<?php echo dsq_i('Advanced: Used for single sign-on (SSO) integration. (<a href="%s" onclick="window.open(this.href); return false">more info on SSO</a>)', 'http://docs.disqus.com/developers/sso/'); ?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row" valign="top"><?php echo dsq_i('Application Secret Key'); ?></th>
+				<td>
+					<input type="text" name="disqus_secret_key" value="<?php echo esc_attr($dsq_secret_key); ?>" tabindex="2">
+					<br />
+					<?php echo dsq_i('Advanced: Used for single sign-on (SSO) integration. (<a href="%s" onclick="window.open(this.href); return false">more info on SSO</a>)', 'http://docs.disqus.com/developers/sso/'); ?>
 				</td>
 			</tr>
 
