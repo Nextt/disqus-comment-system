@@ -3,7 +3,7 @@ Contributors: disqus, alexkingorg, crowdfavorite
 Tags: comments, threaded, email, notification, spam, avatars, community, profile, widget, disqus
 Requires at least: 2.8
 Tested up to: 3.0
-Stable tag: 2.64
+Stable tag: 2.61
 
 The Disqus comment system replaces your WordPress comment system with your comments hosted and powered by Disqus.
 
