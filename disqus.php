@@ -4,7 +4,7 @@ Plugin Name: Disqus Comment System
 Plugin URI: http://disqus.com/
 Description: The Disqus comment system replaces your WordPress comment system with your comments hosted and powered by Disqus. Head over to the Comments admin page to set up your DISQUS Comment System.
 Author: Disqus <team@disqus.com>
-Version: 2.64
+Version: 2.65
 Author URI: http://disqus.com/
 */
 
@@ -31,7 +31,7 @@ define('DISQUS_CAN_EXPORT',         is_file(dirname(__FILE__) . '/export.php'));
 if (!defined('DISQUS_DEBUG')) {
     define('DISQUS_DEBUG',          false);
 }
-define('DISQUS_VERSION',            '2.64');
+define('DISQUS_VERSION',            '2.65');
 
 /**
  * Returns an array of all option identifiers used by DISQUS.
@@ -188,7 +188,7 @@ function dsq_manage_dialog($message, $error = false) {
         . '</strong></p></div>';
 }
 
-function dsq_sync_comments(&$comments) {
+function dsq_sync_comments($comments) {
     global $wpdb;
 
     // user MUST be logged out during this process
@@ -553,7 +553,7 @@ function dsq_sync_forum($last_comment_id=false) {
 
 add_action('dsq_sync_forum', 'dsq_sync_forum');
 
-function dsq_update_permalink(&$post) {
+function dsq_update_permalink($post) {
     global $dsq_api;
 
     $response = $dsq_api->api->update_thread(null, array(
@@ -1014,13 +1014,13 @@ function dsq_parse_query($query) {
 add_action('parse_request', 'dsq_parse_query');
 
 // track the original request post_ids, only run once
-function dsq_add_request_post_ids(&$posts) {
+function dsq_add_request_post_ids($posts) {
     dsq_add_query_posts($posts);
     remove_action('the_posts', 'dsq_log_request_post_ids', 999);
     return $posts;
 }
 
-function dsq_maybe_add_post_ids(&$posts) {
+function dsq_maybe_add_post_ids($posts) {
     global $DSQ_QUERY_COMMENTS;
     if ($DSQ_QUERY_COMMENTS) {
         dsq_add_query_posts($posts);
@@ -1029,7 +1029,7 @@ function dsq_maybe_add_post_ids(&$posts) {
 }
 add_action('the_posts', 'dsq_maybe_add_post_ids');
 
-function dsq_add_query_posts(&$posts) {
+function dsq_add_query_posts($posts) {
     global $DSQ_QUERY_POST_IDS;
     if (count($posts)) {
         foreach ($posts as $post) {
